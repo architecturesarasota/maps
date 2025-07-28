@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Sarasota 100 Interactive Map</title>
+    <meta name="viewport" content="initial-scale=1,maximum-scale=1,user-scalable=no">
+    <script src="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.js"></script>
+    <link href="https://api.mapbox.com/mapbox-gl-js/v3.8.0/mapbox-gl.css" rel="stylesheet">
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+            font-size: 14px;
+            overflow: hidden;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 0;
+            bottom: 0;
+        }
+
+        .mapboxgl-popup {
+            max-width: 600px !important;
+        }
+
+        .mapboxgl-popup-content {
+            font-family: 'Futura', sans-serif;
+            font-size: 16px;
+            background-color: #EEC02F;
+            color: #231F20;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.5);
+            line-height: 1.4;
+        }
+
+        .mapboxgl-popup-content strong {
+            font-family: 'Futura Bold', sans-serif;
+            font-weight: bold;
+            font-size: 20px;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .mapboxgl-popup-content em {
+            font-family: 'Futura Medium', sans-serif;
+            font-style: normal;
+            font-size: 16px;
+            display: block;
+            margin-bottom: 10px;
+        }
+
+        .mapboxgl-popup-content div {
+            font-family: 'Futura Medium', sans-serif;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .popup-image {
+            width: 100%;
+            height: auto;
+            border-radius: 4px;
+            margin-top: 12px;
+        }
+
+        #category-filter {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background-color: #EEC02F;
+            color: #000;
+            font-family: 'Futura', sans-serif;
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 999;
+            width: 280px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+        }
+
+        #category-filter label {
+            display: block;
+            margin-bottom: 12px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        #category-filter input[type="checkbox"] {
+            margin-right: 8px;
+            transform: scale(1.2);
+            accent-color: black;
+            cursor: pointer;
+        }
+
+        #category-filter .title {
+            font-weight: bold;
+            margin-bottom: 16px;
+            font-size: 16px;
+        }
+
+        #overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(35, 31, 32, 0.92);
+            color: white;
+            z-index: 3000;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            font-family: 'Futura', sans-serif;
+            padding-left: 200px;
+        }
+
+        .overlay-wrapper {
+            max-width: 500px;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+
+        .logos {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .logos img {
+            height: 60px;
+            width: auto;
+        }
+
+        .overlay-wrapper h1 {
+            font-size: 36px;
+            color: #EEC02F;
+            margin-bottom: 20px;
+            max-width: 400px;
+        }
+
+        .overlay-wrapper p {
+            font-size: 24px;
+            color: white;
+            max-width: 400px;
+            line-height: 1.4;
+            margin-bottom: 32px;
+            text-align: justify;
+        }
+
+        #enterButton {
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: #EEC02F;
+            color: #231F20;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-family: 'Futura Bold', sans-serif;
+        }
+
+        #enterButton:hover {
+            background-color: #f7d44f;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Intro overlay -->
+<div id="overlay">
+    <div class="overlay-wrapper">
+        <div class="logos">
+            <img src="./images/mtm_logo_yellow.png" alt="Moderns Logo" />
+            <img src="./images/sarasota_100_logo_white.png" alt="Sarasota 100 Logo" />
+        </div>
+        <h1>Welcome to the Sarasota 100 Interactive Map</h1>
+        <p>Explore the architectural legacy of Sarasota. Click on the yellow dots to learn more about each site.</p>
+        <button id="enterButton">Enter Map</button>
+    </div>
+</div>
+
+<div id="map"></div>
+
+<!-- Category Filter UI -->
+<div id="category-filter">
+    <div class="title">Filter Categories</div>
+    <label><input type="checkbox" value="all" id="checkAll" checked> All</label>
+    <label><input type="checkbox" value="Multifamily" checked> Multi-family Residential</label>
+    <label><input type="checkbox" value="Educational" checked> Educational</label>
+    <label><input type="checkbox" value="Culture and Arts" checked> Culture & Arts</label>
+    <label><input type="checkbox" value="District" checked> Neighborhoods & Districts</label>
+    <label><input type="checkbox" value="Residential" checked> Single Family Residential</label>
+    <label><input type="checkbox" value="Commercial" checked> Commercial</label>
+    <label><input type="checkbox" value="Spiritual" checked> Spiritual</label>
+    <label><input type="checkbox" value="Recreational" checked> Recreational</label>
+    <label><input type="checkbox" value="Public Space" checked> Public Space</label>
+</div>
+
+<script>
+    document.getElementById('enterButton').addEventListener('click', () => {
+        document.getElementById('overlay').style.display = 'none';
+    });
+
+    mapboxgl.accessToken = 'pk.eyJ1IjoiYXJjaGl0ZWN0dXJlc2FyYXNvdGExIiwiYSI6ImNtYnpkN2V4MDFqdHYyd3F1d3oyM2M1a2sifQ.SQd1SUTfTCdWm8ea66NAfg';
+
+    const map = new mapboxgl.Map({
+        container: 'map',
+        style: 'mapbox://styles/mapbox/dark-v11',
+        center: [-82.553257, 27.330930],
+        zoom: 13.44
+    });
+
+    let allData = null;
+
+    map.on('load', () => {
+        fetch('./data/ssoa.geojson')
+            .then(res => res.json())
+            .then(data => {
+                // Use a dictionary to keep only one point per USER_Site_
+                const seen = new Set();
+                const uniqueFeatures = [];
+
+                for (const feature of data.features) {
+                    const siteName = feature.properties.USER_Site_;
+                    if (!seen.has(siteName)) {
+                        seen.add(siteName);
+                        // Center point logic (if polygon or multipoint in original)
+                        if (feature.geometry.type === 'Polygon') {
+                            const coords = feature.geometry.coordinates[0]; // outer ring
+                            const centroid = coords.reduce((acc, coord) => {
+                                acc[0] += coord[0];
+                                acc[1] += coord[1];
+                                return acc;
+                            }, [0, 0]).map(sum => sum / coords.length);
+
+                            feature.geometry = {
+                                type: 'Point',
+                                coordinates: centroid
+                            };
+                        }
+
+                        uniqueFeatures.push(feature);
+                    }
+                }
+
+                allData = {
+                    type: 'FeatureCollection',
+                    features: uniqueFeatures
+                };
+
+                map.addSource('ssoa', {
+                    type: 'geojson',
+                    data: allData
+                });
+
+                map.addLayer({
+                    id: 'ssoa',
+                    type: 'circle',
+                    source: 'ssoa',
+                    paint: {
+                        'circle-radius': 7,
+                        'circle-color': '#EEC02F',
+                        'circle-stroke-width': 0
+                    }
+                });
+
+                // Events
+                map.on('mouseenter', 'ssoa', () => map.getCanvas().style.cursor = 'pointer');
+                map.on('mouseleave', 'ssoa', () => map.getCanvas().style.cursor = '');
+                map.on('click', 'ssoa', (e) => {
+                    const props = e.features[0].properties;
+                    const coordinates = e.lngLat;
+
+                    const site = props.USER_Site_ || 'Unknown';
+                    const year = props.USER_Year_ || 'N/A';
+                    const architect = props.USER_Archi || 'N/A';
+                    const category = props.USER_Categ || 'N/A';
+
+                    const imageURL = props.Website?.trim();
+                    const isValidImage = imageURL && (imageURL.startsWith('http://') || imageURL.startsWith('https://'));
+                    const imageHTML = isValidImage ? `<img src="${imageURL}" alt="${site}" class="popup-image">` : '';
+
+                    const html = `
+          <strong>${site}</strong><br>
+          <em>${year} — ${architect}</em><br>
+          <div>${category}</div>
+          ${imageHTML}
+        `;
+
+                    new mapboxgl.Popup()
+                        .setLngLat(coordinates)
+                        .setHTML(html)
+                        .addTo(map);
+
+                    map.easeTo({ center: coordinates, offset: [0, -250], duration: 500 });
+                });
+
+                updateMapFilter();
+            });
+
+
+
+
+
+
+    });
+
+    const checkAllBox = document.getElementById('checkAll');
+    const categoryCheckboxes = Array.from(document.querySelectorAll('#category-filter input[type="checkbox"]'))
+        .filter(cb => cb.value !== 'all');
+
+    function updateMapFilter() {
+        const selected = categoryCheckboxes
+            .filter(cb => cb.checked)
+            .map(cb => cb.value);
+
+        const filtered = {
+            ...allData,
+            features: allData.features.filter(f => selected.includes(f.properties.USER_Categ))
+        };
+
+        if (map.getSource('ssoa')) {
+            map.getSource('ssoa').setData(filtered);
+        }
+    }
+
+    checkAllBox.addEventListener('change', () => {
+        const isChecked = checkAllBox.checked;
+        categoryCheckboxes.forEach(cb => cb.checked = isChecked);
+        updateMapFilter();
+    });
+
+    categoryCheckboxes.forEach(cb => {
+        cb.addEventListener('change', () => {
+            const allChecked = categoryCheckboxes.every(cb => cb.checked);
+            checkAllBox.checked = allChecked;
+            updateMapFilter();
+        });
+    });
+
+    window.addEventListener('load', updateMapFilter);
+</script>
+
+</body>
+</html>
